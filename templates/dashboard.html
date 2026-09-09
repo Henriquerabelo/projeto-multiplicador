@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Select Reference -->
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Apuração Multiplicador</h1>
+            <p class="text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
+                <span>Acompanhamento comparativo de performance (Sem Cesta vs Com Cesta).</span>
+                {% if ultima_importacao and ultima_importacao.data_arquivo %}
+                <span class="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-blue-200">
+                    <i class="fa-regular fa-calendar-check text-[11px] text-blue-600"></i> Base atualizada até: <strong>{{ ultima_importacao.data_arquivo.strftime('%d/%m/%Y') }}</strong>
+                </span>
+                {% endif %}
+            </p>
+        </div>
+        <form method="get" action="/" class="flex items-center gap-2">
+            <label for="ref" class="text-sm font-semibold text-gray-600">Referência:</label>
+            <select name="ref" id="ref" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 p-2.5 font-medium">
+                {% for month in months %}
+                    <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>
+                        {{ month.strftime('%m/%Y') }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- KPIs Cards (Double Stats) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
+            <div class="w-full">
+                <span class="text-sm text-gray-400 font-semibold uppercase">Lojas Elegíveis</span>
+                <div class="flex justify-between items-end mt-2">
+                    <div>
+                        <span class="text-xs text-gray-400 block font-medium">Sem Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-blue-600">{{ total_elegiveis1 }} <span class="text-sm font-normal text-gray-400">/ {{ total_lojas }}</span></h4>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-gray-400 block font-medium">Com Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-green-600">{{ total_elegiveis2 }} <span class="text-sm font-normal text-gray-400">/ {{ total_lojas }}</span></h4>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-green-50 p-4 rounded-full text-green-600 ml-4 hidden sm:block">
+                <i class="fa-solid fa-store-circle-check text-2xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
+            <div class="w-full">
+                <span class="text-sm text-gray-400 font-semibold uppercase">% Elegibilidade Geral</span>
+                <div class="flex justify-between items-end mt-2">
+                    <div>
+                        <span class="text-xs text-gray-400 block font-medium">Sem Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-blue-600">{% if resumo.ativas1 > 0 %}{{ ((total_elegiveis1 / resumo.ativas1) * 100) | round(1) }}{% else %}0{% endif %}%</h4>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-gray-400 block font-medium">Com Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-green-600">{% if resumo.ativas2 > 0 %}{{ ((total_elegiveis2 / resumo.ativas2) * 100) | round(1) }}{% else %}0{% endif %}%</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-full text-blue-600 ml-4 hidden sm:block">
+                <i class="fa-solid fa-chart-pie text-2xl"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between">
+            <div class="w-full">
+                <span class="text-sm text-gray-400 font-semibold uppercase">Pontuação Geral</span>
+                <div class="flex justify-between items-end mt-2">
+                    <div>
+                        <span class="text-xs text-gray-400 block font-medium">Sem Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-blue-600">{{ total_pontos1 }}</h4>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-gray-400 block font-medium">Com Cesta</span>
+                        <h4 class="text-2xl font-extrabold text-green-600">{{ total_pontos2 }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-red-50 p-4 rounded-full text-red-600 ml-4 hidden sm:block">
+                <i class="fa-solid fa-award text-2xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary of Stats Table (Row 621 Style) -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <div>
+                <h2 class="font-bold text-gray-700 text-base">Resumo Geral de Enquadramento</h2>
+                <p class="text-xs text-gray-400 mt-0.5">Visão consolidada de elegibilidade das lojas ativas</p>
+            </div>
+            <a href="/dashboard/exportar-enquadramento?ref={{ selected_month }}" 
+               title="Baixar planilha com o enquadramento detalhado de cada loja"
+               class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3.5 rounded-lg text-xs shadow-sm transition-all flex items-center gap-2 self-start sm:self-auto">
+                <i class="fa-solid fa-file-excel"></i> Exportar Detalhado (.csv)
+            </a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-center text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left">Status</th>
+                        <th class="px-6 py-3">Sem Cesta (Qtd)</th>
+                        <th class="px-6 py-3">Sem Cesta (%)</th>
+                        <th class="px-6 py-3">Com Cesta (Qtd)</th>
+                        <th class="px-6 py-3">Com Cesta (%)</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 font-medium">
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-left font-bold text-green-600">Sim (Elegível)</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.sim1 or 0 }}</td>
+                        <td class="px-6 py-4 text-blue-600">{% if resumo.ativas1 > 0 %}{{ ((resumo.sim1 / resumo.ativas1) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.sim2 or 0 }}</td>
+                        <td class="px-6 py-4 text-green-600">{% if resumo.ativas2 > 0 %}{{ ((resumo.sim2 / resumo.ativas2) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-left font-bold text-yellow-600">Próximo</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.prox1 or 0 }}</td>
+                        <td class="px-6 py-4 text-blue-600">{% if resumo.ativas1 > 0 %}{{ ((resumo.prox1 / resumo.ativas1) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.prox2 or 0 }}</td>
+                        <td class="px-6 py-4 text-green-600">{% if resumo.ativas2 > 0 %}{{ ((resumo.prox2 / resumo.ativas2) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 text-left font-bold text-red-600">Não</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.nao1 or 0 }}</td>
+                        <td class="px-6 py-4 text-blue-600">{% if resumo.ativas1 > 0 %}{{ ((resumo.nao1 / resumo.ativas1) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.nao2 or 0 }}</td>
+                        <td class="px-6 py-4 text-green-600">{% if resumo.ativas2 > 0 %}{{ ((resumo.nao2 / resumo.ativas2) * 100) | round(2) }}{% else %}0{% endif %}%</td>
+                    </tr>
+                    <tr class="hover:bg-gray-50 bg-gray-50/50">
+                        <td class="px-6 py-4 text-left font-bold text-gray-500">Zero</td>
+                        <td class="px-6 py-4 text-gray-500">{{ resumo.zero1 or 0 }}</td>
+                        <td class="px-6 py-4 text-gray-400">-</td>
+                        <td class="px-6 py-4 text-gray-500">{{ resumo.zero2 or 0 }}</td>
+                        <td class="px-6 py-4 text-gray-400">-</td>
+                    </tr>
+                    <tr class="bg-gray-100 font-extrabold text-gray-800">
+                        <td class="px-6 py-4 text-left">Total de Lojas Ativas</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.ativas1 or 0 }}</td>
+                        <td class="px-6 py-4 text-gray-400">-</td>
+                        <td class="px-6 py-4 text-gray-800">{{ resumo.ativas2 or 0 }}</td>
+                        <td class="px-6 py-4 text-gray-400">-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Volumetria de Negocios Card -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="font-bold text-gray-700">Volumetria de Negócios (Faturamento & Qtd)</h2>
+            <span class="text-xs text-gray-400 font-semibold">Totalizadores consolidados do mês</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100 bg-white text-sm">
+            <!-- Col 1: Contas -->
+            <div class="p-6 space-y-4">
+                <h3 class="font-bold text-blue-600 uppercase text-xs tracking-wider flex items-center gap-1">
+                    <i class="fa-solid fa-address-book"></i> Contas
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Contas PF:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.contas_pf }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Contas PJ:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.contas_pj }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Contas Folha:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.contas_folha }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Col 2: Credito -->
+            <div class="p-6 space-y-4">
+                <h3 class="font-bold text-green-600 uppercase text-xs tracking-wider flex items-center gap-1">
+                    <i class="fa-solid fa-hand-holding-dollar"></i> Crédito
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">LIME (Limite):</span>
+                        <span class="font-bold text-gray-800">R$ {{ "{:,.2f}".format(volumes.vlr_lime).replace(',', 'x').replace('.', ',').replace('x', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Consignado:</span>
+                        <span class="font-bold text-gray-800">R$ {{ "{:,.2f}".format(volumes.vlr_consignado).replace(',', 'x').replace('.', ',').replace('x', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Créd. Parcelado:</span>
+                        <span class="font-bold text-gray-800">R$ {{ "{:,.2f}".format(volumes.vlr_credito_parcel).replace(',', 'x').replace('.', ',').replace('x', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Cheque Especial:</span>
+                        <span class="font-bold text-gray-800">R$ {{ "{:,.2f}".format(volumes.vlr_ches).replace(',', 'x').replace('.', ',').replace('x', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-100 pt-2">
+                        <span class="text-gray-500">Consórcios (Qtd):</span>
+                        <span class="font-bold text-gray-800">{{ volumes.consorcio }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Col 3: Seguros -->
+            <div class="p-6 space-y-4">
+                <h3 class="font-bold text-purple-600 uppercase text-xs tracking-wider flex items-center gap-1">
+                    <i class="fa-solid fa-shield-halved"></i> Seguros (Qtd)
+                </h3>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Microsseguro:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_micro }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Super Prot.:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_super }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Viva Vida:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_vivavida }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Plano Odonto:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_odonto }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Residencial:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_residencial }}</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-gray-400">Seg. Cartão:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.seguro_cartao }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Col 4: Transacoes / Outros -->
+            <div class="p-6 space-y-4">
+                <h3 class="font-bold text-red-600 uppercase text-xs tracking-wider flex items-center gap-1">
+                    <i class="fa-solid fa-chart-line"></i> Serviços & Volumes
+                </h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Trx Contábeis:</span>
+                        <span class="font-bold text-gray-800">{{ "{:,}".format(volumes.trx_contabil).replace(',', '.') }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Cesta Serviços:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.cesta_serv }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Cartões Emitidos:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.cartao_emitido }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Mobilidade:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.mobilidade }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">mToken:</span>
+                        <span class="font-bold text-gray-800">{{ volumes.mtoken }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Ranking Table (Full Width) -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+            <h2 class="font-bold text-gray-700">Ranking Geral de Assessores</h2>
+            <span class="text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-600">Pontuação 2 (Com Cesta)</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
+                    <tr>
+                        <th class="px-3 py-3 text-center">Pos</th>
+                        <th class="px-3 py-3">Assessor</th>
+                        <th class="px-3 py-3 text-center">Lojas</th>
+                        <th class="px-3 py-3 text-center">Eleg (Sem)</th>
+                        <th class="px-3 py-3 text-center">Eleg (Com)</th>
+                        <th class="px-3 py-3 text-right">Pts (Sem)</th>
+                        <th class="px-3 py-3 text-right">Pts (Com)</th>
+                        <th class="px-4 py-3 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in ranking %}
+                    <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+                        <td class="px-3 py-4 text-center font-bold">
+                            {% if r.posicao == 1 %}
+                                <span class="inline-flex justify-center items-center w-6 h-6 rounded-full bg-yellow-400 text-yellow-900 text-xs"><i class="fa-solid fa-crown"></i></span>
+                            {% elif r.posicao == 2 %}
+                                <span class="inline-flex justify-center items-center w-6 h-6 rounded-full bg-gray-300 text-gray-800 text-xs">2</span>
+                            {% elif r.posicao == 3 %}
+                                <span class="inline-flex justify-center items-center w-6 h-6 rounded-full bg-orange-300 text-orange-900 text-xs">3</span>
+                            {% else %}
+                                {{ r.posicao }}
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-4 font-bold text-gray-800">
+                            <div>{{ r.vendedor }}</div>
+                        </td>
+                        <td class="px-3 py-4 text-center">{{ r.total_lojas }}</td>
+                        <td class="px-3 py-4 text-center text-blue-600 font-semibold">{{ r.lojas_elegiveis1 }}</td>
+                        <td class="px-3 py-4 text-center text-green-600 font-semibold">{{ r.lojas_elegiveis2 }}</td>
+                        <td class="px-3 py-4 text-right font-bold text-blue-600">{{ r.pontuacao1_total }}</td>
+                        <td class="px-3 py-4 text-right font-extrabold text-green-600">{{ r.pontuacao2_total }}</td>
+                        <td class="px-4 py-4 text-center">
+                            <a href="/vendedor/{{ r.vendedor_id }}?ref={{ selected_month }}" class="text-blue-600 hover:text-blue-900 font-semibold inline-flex items-center gap-1">
+                                <i class="fa-solid fa-eye text-xs"></i> Detalhes
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Chart Section (Full Width Bottom) -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-3 mb-4 gap-2">
+            <div>
+                <h2 class="font-bold text-gray-700 text-base">Pontuação Comparativa de Assessores</h2>
+                <p class="text-xs text-gray-400">Comparativo geral de desempenho de todos os assessores no período selecionado</p>
+            </div>
+            <div class="text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
+                <i class="fa-solid fa-circle-info text-blue-500 mr-1"></i> Com Cesta (<span class="text-green-600 font-semibold">verde</span>) vs Sem Cesta (<span class="text-blue-600 font-semibold">azul</span>)
+            </div>
+        </div>
+        <div class="relative h-80 sm:h-96 w-full">
+            <canvas id="rankingChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('rankingChart').getContext('2d');
+    const rankingLabels = [{% for r in ranking %}'{{ r.vendedor }}',{% endfor %}];
+    const rankingDataSem = [{% for r in ranking %}{{ r.pontuacao1_total }},{% endfor %}];
+    const rankingDataCom = [{% for r in ranking %}{{ r.pontuacao2_total }},{% endfor %}];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: rankingLabels,
+            datasets: [
+                {
+                    label: 'Sem Cesta',
+                    data: rankingDataSem,
+                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                    borderColor: 'rgba(37, 99, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                },
+                {
+                    label: 'Com Cesta',
+                    data: rankingDataCom,
+                    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                    borderColor: 'rgba(22, 163, 74, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 45,
+                        minRotation: 0,
+                        font: {
+                            size: 11,
+                            weight: '500'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% block content_end %}{% endblock %}
+{% endblock %}

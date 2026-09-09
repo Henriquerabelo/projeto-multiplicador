@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">Carteira de Lojas</h1>
+            <p class="text-sm text-gray-500">Gerenciamento, acompanhamento e exportação de carteiras de lojas dos assessores.</p>
+        </div>
+        <a href="/lojas/exportar{% if search or selected_vendedor %}?search={{ search or '' }}&vendedor_id={{ selected_vendedor or '' }}{% endif %}" 
+           title="Baixar planilha CSV com os dados filtrados"
+           class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm shadow-sm transition-all flex items-center gap-2 self-start sm:self-auto">
+            <i class="fa-solid fa-file-excel"></i> Exportar Dados (.csv)
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div class="md:col-span-2">
+                <label for="search" class="block mb-2 text-sm font-semibold text-gray-600">Buscar Loja:</label>
+                <input type="text" id="search" name="search" value="{{ search or '' }}" placeholder="Nome, chave ou município..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 block w-full p-2.5">
+            </div>
+            <div>
+                <label for="vendedor_id" class="block mb-2 text-sm font-semibold text-gray-600">Filtrar por Assessor:</label>
+                <select id="vendedor_id" name="vendedor_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-red-500 focus:border-red-500 block w-full p-2.5">
+                    <option value="">Todos os Assessores</option>
+                    {% for v in vendedores %}
+                        <option value="{{ v.id }}" {% if v.id|string == selected_vendedor|string %}selected{% endif %}>{{ v.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="flex-grow bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm shadow-sm transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+                </button>
+                <a href="/lojas" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-2.5 px-3 rounded-lg text-sm shadow-sm transition-all flex items-center justify-center" title="Limpar Filtros">
+                    Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Stores List -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="font-bold text-gray-700">Relação de Lojas e Vinculação</h2>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-400 font-semibold">{{ lojas|length }} lojas listadas</span>
+                <a href="/lojas/exportar{% if search or selected_vendedor %}?search={{ search or '' }}&vendedor_id={{ selected_vendedor or '' }}{% endif %}" 
+                   class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded flex items-center gap-1 transition-all">
+                    <i class="fa-solid fa-download"></i> CSV
+                </a>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3">Chave</th>
+                        <th class="px-6 py-3">Nome da Loja</th>
+                        <th class="px-6 py-3">Município</th>
+                        <th class="px-6 py-3">Agência/PA</th>
+                        <th class="px-6 py-3">Regional</th>
+                        <th class="px-6 py-3">Última Importação</th>
+                        <th class="px-6 py-3">Assessor Responsável (Carteira)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for l in lojas %}
+                    <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-mono font-medium text-gray-600">{{ l.chave_loja }}</td>
+                        <td class="px-6 py-4 font-bold text-gray-800">{{ l.nome_loja }}</td>
+                        <td class="px-6 py-4">{{ l.municipio }} - {{ l.uf }}</td>
+                        <td class="px-6 py-4 font-mono text-xs">{{ l.ag_pacb }}</td>
+                        <td class="px-6 py-4 text-xs">{{ l.regional }}</td>
+                        <td class="px-6 py-4 text-xs font-mono text-gray-500">
+                            {% if l.ultima_data %}
+                                <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ l.ultima_data.strftime('%d/%m/%Y') }}</span>
+                            {% else %}
+                                <span class="bg-red-50 text-red-500 px-2 py-1 rounded">Nenhuma</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if current_user.role == 'admin' %}
+                            <select onchange="updateCarteira('{{ l.id }}', this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-red-500 focus:border-red-500 block w-full p-2 font-medium">
+                                {% for v in vendedores %}
+                                    <option value="{{ v.id }}" {% if v.id == l.vendedor_id %}selected{% endif %}>{{ v.nome }}</option>
+                                {% endfor %}
+                            </select>
+                            {% else %}
+                            <span class="font-bold text-gray-700 text-xs bg-gray-100 px-2.5 py-1 rounded">{{ l.vendedor or 'Sem Assessor' }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification element -->
+<div id="toast" class="fixed bottom-5 right-5 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <i class="fa-solid fa-circle-check text-green-500" id="toast-icon"></i>
+    <span id="toast-msg">Carteira atualizada!</span>
+</div>
+
+<script>
+    function updateCarteira(storeId, vendedorId) {
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        const toastIcon = document.getElementById('toast-icon');
+
+        fetch('/loja/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `store_id=${storeId}&vendedor_id=${vendedorId}`
+        })
+        .then(response => {
+            if (response.ok) {
+                toastMsg.innerText = 'Associação da loja atualizada com sucesso!';
+                toastIcon.className = 'fa-solid fa-circle-check text-green-500';
+                showToast();
+            } else {
+                throw new Error('Falha ao atualizar');
+            }
+        })
+        .catch(error => {
+            toastMsg.innerText = 'Erro ao atualizar associação!';
+            toastIcon.className = 'fa-solid fa-circle-xmark text-red-500';
+            showToast();
+        });
+    }
+
+    function showToast() {
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+    }
+</script>
+{% endblock %}

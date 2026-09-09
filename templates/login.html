@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Multiplicador Bradesco Expresso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <!-- Logo / Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-600 text-white text-3xl shadow-lg shadow-red-200 mb-4">
+                <i class="fa-solid fa-money-bill-trend-up"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold text-gray-800 tracking-tight">Bradesco Expresso</h1>
+            <p class="text-sm font-semibold text-red-600 uppercase tracking-wider mt-1">Programa Multiplicador</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+            <h2 class="text-lg font-bold text-gray-800 mb-1">Acesso ao Sistema</h2>
+            <p class="text-xs text-gray-500 mb-6">Informe suas credenciais para visualizar seus indicadores.</p>
+
+            {% if error %}
+            <div class="mb-5 bg-red-50 border-l-4 border-red-500 p-3 rounded text-xs font-semibold text-red-700 flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form action="/login" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1.5" for="login">Usuário ou E-mail</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-user text-sm"></i>
+                        </div>
+                        <input type="text" id="login" name="login" required autocomplete="username"
+                               placeholder="Ex: admin, jack, ismael..."
+                               class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1.5" for="password">Senha</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-lock text-sm"></i>
+                        </div>
+                        <input type="password" id="password" name="password" required autocomplete="current-password"
+                               placeholder="••••••••"
+                               class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                        <span>Entrar no Sistema</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-6 pt-6 border-t border-gray-100 text-center">
+                <p class="text-[11px] text-gray-400">
+                    Acesso restrito a Assessores, Coordenadores e Administradores autorizados.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

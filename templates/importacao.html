@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-800">Importação de Dados Diários</h1>
+        <p class="text-sm text-gray-500">Faça o upload do arquivo CSV ou XLSX diário exportado do sistema Bradesco Expresso.</p>
+    </div>
+
+    <!-- Status da Última Carga / Indicadores de Atualização -->
+    <div class="bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 rounded-xl p-6 shadow-md text-white border border-gray-700">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-700/60 pb-4 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 text-xl">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-white tracking-wide">Status da Última Carga no Sistema</h2>
+                    <p class="text-xs text-gray-400">Informações sobre o lote de dados mais recente processado na base</p>
+                </div>
+            </div>
+            {% if ultima_importacao %}
+                {% if ultima_importacao.status == 'concluido' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    Base Atualizada com Sucesso
+                </span>
+                {% elif ultima_importacao.status == 'concluido_com_erros' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                    Concluído com Alertas
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+                    Última Carga com Falha
+                </span>
+                {% endif %}
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                Nenhuma carga realizada ainda
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 1. Último Dia Importado (Data Base) -->
+            <div class="bg-gray-800/80 rounded-lg p-4 border border-gray-700/80 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-regular fa-calendar-check"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Último Dia Importado</span>
+                    <span class="text-xl font-extrabold text-blue-400">
+                        {% if ultima_importacao and ultima_importacao.data_arquivo %}
+                            {{ ultima_importacao.data_arquivo.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 2. Arquivo Processado -->
+            <div class="bg-gray-800/80 rounded-lg p-4 border border-gray-700/80 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-solid fa-file-code"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Último Arquivo</span>
+                    <span class="text-sm font-bold text-white truncate block font-mono" title="{{ ultima_importacao.arquivo_nome if ultima_importacao else '-' }}">
+                        {{ ultima_importacao.arquivo_nome if ultima_importacao else '-' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 3. Data e Horário da Importação -->
+            <div class="bg-gray-800/80 rounded-lg p-4 border border-gray-700/80 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-regular fa-clock"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Data e Horário</span>
+                    <span class="text-sm font-bold text-white block">
+                        {% if ultima_importacao and ultima_importacao.importado_em %}
+                            {{ ultima_importacao.importado_em.strftime('%d/%m/%Y às %H:%M:%S') }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 4. Referência e Volume de Lojas -->
+            <div class="bg-gray-800/80 rounded-lg p-4 border border-gray-700/80 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg flex-shrink-0">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <div>
+                    <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Mês / Registros</span>
+                    <span class="text-sm font-bold text-white block">
+                        {% if ultima_importacao %}
+                            {{ ultima_importacao.referencia.strftime('%m/%Y') }} ({{ "{:,}".format(ultima_importacao.total_lojas or 0).replace(',', '.') }} lojas)
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert if any -->
+    {% if error_msg %}
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow-sm flex items-center gap-3">
+        <i class="fa-solid fa-circle-exclamation text-red-500 text-xl"></i>
+        <div class="text-sm text-red-700 font-semibold">{{ error_msg }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Upload Form -->
+    <div class="bg-white p-8 rounded-lg shadow-sm border border-gray-200 flex flex-col items-center">
+        <div class="w-full max-w-xl text-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Carregar Novo Arquivo Diário</h3>
+            <p class="text-xs text-gray-500 mt-1">O nome do arquivo deve conter a data de referência no padrão <span class="font-mono font-bold bg-gray-100 text-red-600 px-1.5 py-0.5 rounded">aaaa-mm-dd</span> (ex: <span class="font-mono">2026-08-28.csv</span>).</p>
+        </div>
+
+        <form action="/importar" method="post" enctype="multipart/form-data" class="w-full max-w-xl space-y-4">
+            <div class="flex items-center justify-center w-full">
+                <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-56 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <i class="fa-solid fa-cloud-arrow-up text-red-500 text-4xl mb-4"></i>
+                        <p class="mb-2 text-sm text-gray-500"><span class="font-bold">Clique para selecionar</span> ou arraste o arquivo</p>
+                        <p class="text-xs text-gray-400">Somente arquivos .csv ou .xlsx</p>
+                        <span id="file-name-display" class="mt-4 text-xs font-semibold text-gray-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-lg hidden flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv text-red-600"></i>
+                            <span id="file-name-text">Nenhum arquivo</span>
+                        </span>
+                    </div>
+                    <input id="dropzone-file" type="file" name="file" accept=".csv,.xlsx" required class="hidden" onchange="displayFilename(this)" />
+                </label>
+            </div>
+            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-import"></i> Processar Importação
+            </button>
+        </form>
+    </div>
+
+    <!-- Importations Log -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="font-bold text-gray-700">Histórico de Importações Recentes</h2>
+            <span class="text-xs text-gray-400 font-semibold">Últimas 20 cargas realizadas</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-3">Arquivo</th>
+                        <th class="px-6 py-3 text-center">Referência</th>
+                        <th class="px-6 py-3 text-center">Data do Arquivo</th>
+                        <th class="px-6 py-3 text-center">Importado Em</th>
+                        <th class="px-6 py-3 text-center">Lojas</th>
+                        <th class="px-6 py-3 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for imp in importacoes %}
+                    <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-gray-800">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-file-csv text-gray-400"></i>
+                                <span class="font-mono text-xs">{{ imp.arquivo_nome }}</span>
+                            </div>
+                            {% if imp.mensagem_erro %}
+                                <div class="text-xs text-red-500 font-mono mt-1 break-words max-w-lg bg-red-50 p-2 rounded border border-red-100">{{ imp.mensagem_erro }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center font-semibold text-gray-700">{{ imp.referencia.strftime('%m/%Y') }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="bg-blue-50 text-blue-700 px-2.5 py-1 rounded font-bold text-xs border border-blue-100">
+                                {{ imp.data_arquivo.strftime('%d/%m/%Y') }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center text-xs text-gray-600 font-medium">
+                            {{ imp.importado_em.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </td>
+                        <td class="px-6 py-4 text-center font-bold text-gray-800">{{ "{:,}".format(imp.total_lojas or 0).replace(',', '.') }}</td>
+                        <td class="px-6 py-4 text-center">
+                            {% if imp.status == 'concluido' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700"><i class="fa-solid fa-check mr-1"></i> Sucesso</span>
+                            {% elif imp.status == 'concluido_com_erros' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Com Alertas</span>
+                            {% elif imp.status == 'erro' %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Erro</span>
+                            {% else %}
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700"><i class="fa-solid fa-spinner animate-spin mr-1"></i> Processando</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    function displayFilename(input) {
+        const display = document.getElementById('file-name-display');
+        const textSpan = document.getElementById('file-name-text');
+        if (input.files && input.files.length > 0) {
+            textSpan.innerText = input.files[0].name;
+            display.classList.remove('hidden');
+        } else {
+            display.classList.add('hidden');
+        }
+    }
+</script>
+{% endblock %}
