@@ -3,7 +3,7 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Top Action Bar: Back button and Month Selector -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <div>
             {% if current_user.role in ['admin', 'coordenador'] %}
             <a href="/?ref={{ selected_month }}" class="text-sm font-semibold text-gray-600 hover:text-red-600 flex items-center gap-2 transition-all">
@@ -17,9 +17,9 @@
         </div>
 
         <!-- Month Filter -->
-        <form method="GET" action="/vendedor/{{ vendedor_id }}" class="flex items-center gap-2">
-            <label for="ref" class="text-xs font-bold text-gray-500 uppercase">Mês de Referência:</label>
-            <select name="ref" id="ref" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-red-500 focus:border-red-500 p-2 font-semibold shadow-sm">
+        <form method="GET" action="/vendedor/{{ vendedor_id }}" class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            <label for="ref" class="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Mês de Referência:</label>
+            <select name="ref" id="ref" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-red-500 focus:border-red-500 p-2 font-semibold shadow-sm w-full sm:w-auto">
                 {% for m in months %}
                     <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
                         {{ m.strftime('%m/%Y') }}
@@ -30,26 +30,26 @@
     </div>
 
     <!-- Seller info Card (Double stats) -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 sm:gap-6">
         <div>
             <span class="text-xs font-bold uppercase bg-red-100 text-red-600 px-2.5 py-1 rounded-full">Ficha do Assessor</span>
-            <h1 class="text-2xl font-bold text-gray-800 mt-2">{{ vendedor_nome }}</h1>
-            <p class="text-sm text-gray-500">Gerência Regional: <span class="font-semibold text-gray-700">{{ regional_nome }}</span> | Mês de Apuração: <span class="font-semibold text-gray-700">{{ selected_month.strftime('%m/%Y') }}</span></p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800 mt-2">{{ vendedor_nome }}</h1>
+            <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Gerência Regional: <span class="font-semibold text-gray-700">{{ regional_nome }}</span> | Mês de Apuração: <span class="font-semibold text-gray-700">{{ selected_month.strftime('%m/%Y') }}</span></p>
         </div>
         
-        <div class="grid grid-cols-3 gap-4 w-full lg:w-auto">
-            <div class="bg-gray-50 px-4 py-3 rounded-lg border border-gray-200 text-center">
-                <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider">Total Lojas</span>
-                <span class="text-2xl font-extrabold text-gray-700">{{ lojas|length }}</span>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full lg:w-auto">
+            <div class="bg-gray-50 px-4 py-3 rounded-lg border border-gray-200 text-center flex sm:flex-col justify-between sm:justify-center items-center">
+                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Lojas</span>
+                <span class="text-2xl font-extrabold text-gray-700 sm:mt-1">{{ lojas|length }}</span>
             </div>
             <div class="bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
                 <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider text-center">Lojas Elegíveis</span>
                 <div class="flex justify-between gap-2 mt-1">
-                    <div class="text-center">
+                    <div class="text-center flex-1">
                         <span class="text-[9px] text-gray-400 block font-medium">Sem Cesta</span>
                         <span class="text-sm font-extrabold text-blue-600">{{ total_elegiveis1 }}</span>
                     </div>
-                    <div class="text-center border-l border-gray-200 pl-2">
+                    <div class="text-center border-l border-gray-200 pl-2 flex-1">
                         <span class="text-[9px] text-gray-400 block font-medium">Com Cesta</span>
                         <span class="text-sm font-extrabold text-green-600">{{ total_elegiveis2 }}</span>
                     </div>
@@ -58,11 +58,11 @@
             <div class="bg-gray-50 px-4 py-3 rounded-lg border border-gray-200">
                 <span class="text-[10px] text-gray-400 font-bold block uppercase tracking-wider text-center">Pontuação Total</span>
                 <div class="flex justify-between gap-2 mt-1">
-                    <div class="text-center">
+                    <div class="text-center flex-1">
                         <span class="text-[9px] text-gray-400 block font-medium">Sem Cesta</span>
                         <span class="text-sm font-extrabold text-blue-600">{{ total_pontos1 }}</span>
                     </div>
-                    <div class="text-center border-l border-gray-200 pl-2">
+                    <div class="text-center border-l border-gray-200 pl-2 flex-1">
                         <span class="text-[9px] text-gray-400 block font-medium">Com Cesta</span>
                         <span class="text-sm font-extrabold text-green-600">{{ total_pontos2 }}</span>
                     </div>
@@ -73,14 +73,14 @@
 
     <!-- Summary of Stats Table (Enquadramento do Assessor) -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-                <h2 class="font-bold text-gray-700">Resumo Geral de Enquadramento</h2>
-                <span class="text-xs text-gray-400 font-semibold">Desempenho da Carteira do Assessor</span>
+                <h2 class="font-bold text-gray-700 text-sm sm:text-base">Resumo Geral de Enquadramento</h2>
+                <span class="text-[11px] sm:text-xs text-gray-400 font-semibold">Desempenho da Carteira do Assessor</span>
             </div>
             <a href="/dashboard/exportar-enquadramento?ref={{ selected_month }}" 
                title="Baixar planilha com o enquadramento detalhado das suas lojas"
-               class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow-sm transition-all flex items-center gap-1.5">
+               class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3.5 rounded-lg text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 w-full sm:w-auto">
                 <i class="fa-solid fa-file-excel"></i> Exportar Detalhado (.csv)
             </a>
         </div>
@@ -138,13 +138,13 @@
 
     <!-- Volumetria de Negocios Card -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 class="font-bold text-gray-700">Volumetria de Negócios (Faturamento & Qtd)</h2>
-            <span class="text-xs text-gray-400 font-semibold">Totalizadores consolidados do assessor no mês</span>
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
+            <h2 class="font-bold text-gray-700 text-sm sm:text-base">Volumetria de Negócios (Faturamento & Qtd)</h2>
+            <span class="text-[11px] sm:text-xs text-gray-400 font-semibold">Totalizadores consolidados do assessor no mês</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-gray-100 bg-white text-sm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 lg:divide-x divide-gray-100 bg-white text-xs sm:text-sm">
             <!-- Col 1: Contas -->
-            <div class="p-6 space-y-4">
+            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <h3 class="font-bold text-blue-600 uppercase text-xs tracking-wider flex items-center gap-1">
                     <i class="fa-solid fa-address-book"></i> Contas
                 </h3>
@@ -165,7 +165,7 @@
             </div>
             
             <!-- Col 2: Credito -->
-            <div class="p-6 space-y-4">
+            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <h3 class="font-bold text-green-600 uppercase text-xs tracking-wider flex items-center gap-1">
                     <i class="fa-solid fa-hand-holding-dollar"></i> Crédito
                 </h3>
@@ -194,7 +194,7 @@
             </div>
 
             <!-- Col 3: Seguros -->
-            <div class="p-6 space-y-4">
+            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <h3 class="font-bold text-purple-600 uppercase text-xs tracking-wider flex items-center gap-1">
                     <i class="fa-solid fa-shield-halved"></i> Seguros (Qtd)
                 </h3>
@@ -227,7 +227,7 @@
             </div>
 
             <!-- Col 4: Transacoes / Outros -->
-            <div class="p-6 space-y-4">
+            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <h3 class="font-bold text-red-600 uppercase text-xs tracking-wider flex items-center gap-1">
                     <i class="fa-solid fa-chart-line"></i> Serviços & Volumes
                 </h3>
@@ -259,13 +259,13 @@
 
     <!-- Regional and Agency collapse grouping -->
     <div class="space-y-6">
-        <h2 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-2">Quebra de Produção por Regional e Agência</h2>
+        <h2 class="text-base sm:text-lg font-bold text-gray-800 border-b border-gray-100 pb-2">Quebra de Produção por Regional e Agência</h2>
         
         {% for reg in regional_groups %}
         <div class="space-y-4">
             <!-- Regional Section Header -->
             <div class="bg-red-50 border-l-4 border-red-600 px-4 py-3 rounded-r-lg shadow-sm">
-                <h3 class="font-extrabold text-red-800 text-sm tracking-wide uppercase flex items-center gap-2">
+                <h3 class="font-extrabold text-red-800 text-xs sm:text-sm tracking-wide uppercase flex items-center gap-2">
                     <i class="fa-solid fa-map-location-dot"></i> Regional: {{ reg.regional }}
                 </h3>
             </div>
@@ -273,20 +273,20 @@
             {% for ag in reg.agencias %}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <!-- Group Header -->
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div class="px-4 sm:px-6 py-3.5 sm:py-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div class="flex items-center gap-2">
                         <i class="fa-solid fa-building-columns text-gray-400"></i>
-                        <h4 class="font-bold text-gray-800 text-base">Agência: <span class="text-red-600 font-extrabold">{{ ag.agencia }}</span></h4>
+                        <h4 class="font-bold text-gray-800 text-sm sm:text-base">Agência: <span class="text-red-600 font-extrabold">{{ ag.agencia }}</span></h4>
                     </div>
-                    <div class="flex items-center gap-3 text-xs">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
                         <span class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded font-bold uppercase">Lojas: {{ ag.total_lojas }}</span>
                         <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold border border-blue-100">Eleg. Sem: {{ ag.total_elegiveis1 }} ({{ ag.total_pontos1 }} pts)</span>
                         <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded font-bold border border-green-100">Eleg. Com: {{ ag.total_elegiveis2 }} ({{ ag.total_pontos2 }} pts)</span>
                     </div>
                 </div>
                 
-                <!-- Table for this agency -->
-                <div class="overflow-x-auto">
+                <!-- Desktop Table View (>= md) -->
+                <div class="hidden md:block overflow-x-auto">
                     <table class="w-full text-sm text-left text-gray-500">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
                             <tr>
@@ -348,6 +348,66 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Card List View (< md) -->
+                <div class="block md:hidden divide-y divide-gray-100">
+                    {% for l in ag.lojas %}
+                    <div class="p-4 space-y-2.5 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <span class="font-bold text-gray-800 text-sm block">{{ l.nome_loja }}</span>
+                                <span class="font-mono text-[11px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{{ l.chave_loja }}</span>
+                            </div>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold 
+                                    {% if l.status_treinamento == 'TREINADO' %}bg-green-100 text-green-700
+                                    {% elif l.status_treinamento == 'TRANSACIONAL' %}bg-blue-100 text-blue-700
+                                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                    {{ l.status_treinamento or 'N/D' }}
+                                </span>
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold 
+                                    {% if l.status_bloqueio == 'Desbloqueado' %}bg-green-50 text-green-600 border border-green-200
+                                    {% else %}bg-red-50 text-red-600 border border-red-200{% endif %}">
+                                    {{ l.status_bloqueio }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-gray-500">
+                            <i class="fa-solid fa-location-dot text-red-500 mr-1"></i> {{ l.municipio }} - {{ l.uf }}
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 text-xs bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                            <div class="space-y-1">
+                                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Sem Cesta</span>
+                                <div class="flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
+                                        {% if l.elegivel1 == 'Sim' %}bg-green-100 text-green-800
+                                        {% elif l.elegivel1 == 'Próximo' %}bg-yellow-100 text-yellow-800
+                                        {% elif l.elegivel1 == 'Zero' %}bg-gray-100 text-gray-400
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ l.elegivel1 or 'Não' }}
+                                    </span>
+                                    <span class="font-bold text-blue-600">{{ l.pontuacao1 }} pts</span>
+                                </div>
+                            </div>
+                            <div class="space-y-1 border-l border-gray-200 pl-3">
+                                <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Com Cesta</span>
+                                <div class="flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
+                                        {% if l.elegivel2 == 'Sim' %}bg-green-100 text-green-800
+                                        {% elif l.elegivel2 == 'Próximo' %}bg-yellow-100 text-yellow-800
+                                        {% elif l.elegivel2 == 'Zero' %}bg-gray-100 text-gray-400
+                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                        {{ l.elegivel2 or 'Não' }}
+                                    </span>
+                                    <span class="font-extrabold text-green-600">{{ l.pontuacao2 }} pts</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
             {% endfor %}

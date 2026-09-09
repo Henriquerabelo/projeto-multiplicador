@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança - Alteração de Senha | Multiplicador Bradesco Expresso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <!-- Logo / Header -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-600 text-white text-2xl shadow-lg shadow-red-200 mb-3">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h1 class="text-xl font-extrabold text-gray-800 tracking-tight">Bradesco Expresso</h1>
+            <p class="text-xs font-semibold text-red-600 uppercase tracking-wider mt-0.5">Segurança & Controle de Acesso</p>
+        </div>
+
+        <!-- Card -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-7">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-5">
+                <div>
+                    <h2 class="text-base font-bold text-gray-800">
+                        {% if motivo == 'primeiro_acesso' %}
+                            Primeiro Acesso ao Sistema
+                        {% elif motivo == 'expirada' %}
+                            Atualização Periódica de Senha
+                        {% else %}
+                            Alteração de Senha
+                        {% endif %}
+                    </h2>
+                    <p class="text-xs text-gray-500">
+                        Olá, <strong class="text-gray-700">{{ current_user.nome }}</strong>
+                    </p>
+                </div>
+                <a href="/logout" title="Sair do Sistema" class="text-xs text-gray-400 hover:text-red-600 flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> Sair
+                </a>
+            </div>
+
+            <!-- Context Alert -->
+            {% if motivo == 'primeiro_acesso' %}
+            <div class="mb-5 bg-amber-50 border-l-4 border-amber-500 p-3 rounded text-xs text-amber-800 flex items-start gap-2.5">
+                <i class="fa-solid fa-key text-amber-600 mt-0.5 text-sm"></i>
+                <div>
+                    <strong class="font-bold">Primeiro Acesso Detectado:</strong>
+                    <p class="mt-0.5 leading-relaxed">Você está utilizando a senha inicial padrão. Por política de segurança corporativa, é obrigatório definir sua nova senha pessoal antes de continuar.</p>
+                </div>
+            </div>
+            {% elif motivo == 'expirada' %}
+            <div class="mb-5 bg-red-50 border-l-4 border-red-500 p-3 rounded text-xs text-red-800 flex items-start gap-2.5">
+                <i class="fa-solid fa-clock-rotate-left text-red-600 mt-0.5 text-sm"></i>
+                <div>
+                    <strong class="font-bold">Validade da Senha Expirada (90 Dias):</strong>
+                    <p class="mt-0.5 leading-relaxed">Sua senha atingiu o ciclo de validade de 3 meses. Por conformidade corporativa, cadastre uma nova senha forte para renovar seu acesso.</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if error %}
+            <div class="mb-5 bg-red-50 border-l-4 border-red-500 p-3 rounded text-xs font-semibold text-red-700 flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-500 text-sm"></i>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            {% if success_msg %}
+            <div class="mb-5 bg-green-50 border-l-4 border-green-500 p-3 rounded text-xs font-semibold text-green-700 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-green-500 text-sm"></i>
+                <span>{{ success_msg }}</span>
+            </div>
+            {% endif %}
+
+            <form action="/trocar-senha" method="POST" class="space-y-4" id="formTrocaSenha">
+                <!-- Senha Atual -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1" for="senha_atual">
+                        Senha Atual
+                        {% if motivo == 'primeiro_acesso' %}
+                        <span class="text-gray-400 font-normal text-[11px]">(Senha padrão inicial)</span>
+                        {% endif %}
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="senha_atual" name="senha_atual" required autocomplete="current-password"
+                               placeholder="Digite sua senha atual"
+                               class="w-full pl-3 pr-10 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <button type="button" onclick="togglePassVisibility('senha_atual', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nova Senha -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1" for="nova_senha">Nova Senha Forte</label>
+                    <div class="relative">
+                        <input type="password" id="nova_senha" name="nova_senha" required autocomplete="new-password"
+                               placeholder="Digite a nova senha"
+                               class="w-full pl-3 pr-10 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <button type="button" onclick="togglePassVisibility('nova_senha', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Confirmar Nova Senha -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-gray-600 mb-1" for="confirmar_senha">Confirmar Nova Senha</label>
+                    <div class="relative">
+                        <input type="password" id="confirmar_senha" name="confirmar_senha" required autocomplete="new-password"
+                               placeholder="Repita a nova senha"
+                               class="w-full pl-3 pr-10 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all">
+                        <button type="button" onclick="togglePassVisibility('confirmar_senha', this)" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Requisitos em Tempo Real -->
+                <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs">
+                    <p class="font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check text-red-600"></i> Requisitos da Nova Senha:
+                    </p>
+                    <div class="space-y-1.5">
+                        <div id="req-len" class="flex items-center gap-2 text-gray-500">
+                            <i class="fa-solid fa-circle-xmark text-gray-400 text-xs"></i>
+                            <span>No mínimo 8 caracteres</span>
+                        </div>
+                        <div id="req-let" class="flex items-center gap-2 text-gray-500">
+                            <i class="fa-solid fa-circle-xmark text-gray-400 text-xs"></i>
+                            <span>Pelo menos uma letra (a-z, A-Z)</span>
+                        </div>
+                        <div id="req-num" class="flex items-center gap-2 text-gray-500">
+                            <i class="fa-solid fa-circle-xmark text-gray-400 text-xs"></i>
+                            <span>Pelo menos um número (0-9)</span>
+                        </div>
+                        <div id="req-spec" class="flex items-center gap-2 text-gray-500">
+                            <i class="fa-solid fa-circle-xmark text-gray-400 text-xs"></i>
+                            <span>Pelo menos um caractere especial (@, #, $, %, &, *, etc.)</span>
+                        </div>
+                        <div id="req-match" class="flex items-center gap-2 text-gray-500">
+                            <i class="fa-solid fa-circle-xmark text-gray-400 text-xs"></i>
+                            <span>Confirmação idêntica à nova senha</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center gap-2">
+                    {% if not is_forced %}
+                    <a href="/" class="w-1/3 text-center py-2.5 px-3 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all">
+                        Cancelar
+                    </a>
+                    {% endif %}
+                    <button type="submit" id="btnSalvar"
+                            class="{% if not is_forced %}w-2/3{% else %}w-full{% endif %} bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check text-xs"></i>
+                        <span>Salvar Nova Senha</span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-5 pt-4 border-t border-gray-100 text-center">
+                <p class="text-[11px] text-gray-400">
+                    <i class="fa-solid fa-rotate text-[10px] mr-1"></i> As senhas devem ser renovadas periodicamente a cada 90 dias.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function togglePassVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        const novaSenhaInput = document.getElementById('nova_senha');
+        const confirmarSenhaInput = document.getElementById('confirmar_senha');
+
+        const reqLen = document.getElementById('req-len');
+        const reqLet = document.getElementById('req-let');
+        const reqNum = document.getElementById('req-num');
+        const reqSpec = document.getElementById('req-spec');
+        const reqMatch = document.getElementById('req-match');
+
+        function updateRule(elem, isValid) {
+            const icon = elem.querySelector('i');
+            if (isValid) {
+                elem.className = 'flex items-center gap-2 text-green-700 font-semibold';
+                icon.className = 'fa-solid fa-circle-check text-green-600 text-xs';
+            } else {
+                elem.className = 'flex items-center gap-2 text-gray-500';
+                icon.className = 'fa-solid fa-circle-xmark text-gray-400 text-xs';
+            }
+        }
+
+        function validateForm() {
+            const val = novaSenhaInput.value;
+            const confirmVal = confirmarSenhaInput.value;
+
+            const hasLen = val.length >= 8;
+            const hasLet = /[a-zA-Z]/.test(val);
+            const hasNum = /[0-9]/.test(val);
+            const hasSpec = /[^a-zA-Z0-9]/.test(val);
+            const hasMatch = val.length > 0 && val === confirmVal;
+
+            updateRule(reqLen, hasLen);
+            updateRule(reqLet, hasLet);
+            updateRule(reqNum, hasNum);
+            updateRule(reqSpec, hasSpec);
+            updateRule(reqMatch, hasMatch);
+        }
+
+        novaSenhaInput.addEventListener('input', validateForm);
+        confirmarSenhaInput.addEventListener('input', validateForm);
+    </script>
+</body>
+</html>

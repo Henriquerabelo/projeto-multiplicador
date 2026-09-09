@@ -1,6 +1,7 @@
 import bcrypt
 import jwt
-from datetime import datetime, timedelta
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 import uuid
 
@@ -16,6 +17,50 @@ import os
 SECRET_KEY = os.getenv("SECRET_KEY", "bradesco-multiplicador-jwt-secret-key-2026-auth")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
+DEFAULT_INITIAL_PASSWORD = "Multiplicador@2026"
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """
+    Valida política de senha forte:
+    - Mínimo de 8 caracteres
+    - Pelo menos 1 letra
+    - Pelo menos 1 número
+    - Pelo menos 1 caractere especial
+    """
+    if not password or len(password) < 8:
+        return False, "A senha deve ter no mínimo 8 caracteres."
+    if not re.search(r'[a-zA-Z]', password):
+        return False, "A senha deve conter pelo menos uma letra."
+    if not re.search(r'[0-9]', password):
+        return False, "A senha deve conter pelo menos um número."
+    if not re.search(r'[^a-zA-Z0-9]', password):
+        return False, "A senha deve conter pelo menos um caractere especial (ex: @, #, $, %, &, *)."
+    return True, ""
+
+def user_requires_password_change(user: models.Usuario) -> tuple[bool, str]:
+    """
+    Verifica se o usuário precisa alterar a senha:
+    - Primeiro acesso: True
+    - Senha com 90 dias ou mais: True
+    Retorna (precisa_trocar: bool, motivo: str)
+    """
+    if not user:
+        return False, ""
+        
+    if getattr(user, 'primeiro_acesso', False):
+        return True, "primeiro_acesso"
+        
+    dt_alteracao = getattr(user, 'senha_alterada_em', None)
+    if dt_alteracao:
+        now = datetime.now(timezone.utc)
+        if dt_alteracao.tzinfo is None:
+            dt_alteracao = dt_alteracao.replace(tzinfo=timezone.utc)
+        dias = (now - dt_alteracao).days
+        if dias >= 90:
+            return True, "expirada"
+            
+    return False, ""
+
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()
@@ -86,6 +131,14 @@ def require_login(request: Request, db: Session = Depends(database.get_db)) -> m
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Não autenticado. Por favor, realize o login."
         )
+        
+    # Intercepta se o usuário precisa trocar de senha (primeiro acesso ou expirada)
+    precisa_trocar, _ = user_requires_password_change(user)
+    if precisa_trocar:
+        path = request.url.path
+        if not path.startswith("/trocar-senha") and not path.startswith("/logout"):
+            raise HTTPException(status_code=303, detail="Redirecionando para troca de senha obrigatória", headers={"Location": "/trocar-senha"})
+
     return user
 
 def require_admin(request: Request, user: models.Usuario = Depends(require_login)) -> models.Usuario:

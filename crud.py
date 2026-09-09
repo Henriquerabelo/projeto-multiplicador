@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Optional
 import uuid
+import unicodedata
 
 import models
 
@@ -154,17 +155,37 @@ def get_vendedores(db: Session, allowed_vendedor_ids: Optional[List[uuid.UUID]] 
     return [dict(row._mapping) for row in result]
 
 def create_vendedor(db: Session, nome: str, regional_id: str, coordenador_id: Optional[str] = None):
+    import auth
     new_id = uuid.uuid4()
+    nome_clean = nome.upper().strip()
     sql = text("""
         INSERT INTO vendedores (id, nome, regional_id, coordenador_id, ativo, is_coringa, criado_em)
         VALUES (:id, :nome, :regional_id, :coordenador_id, TRUE, FALSE, NOW())
     """)
     db.execute(sql, {
         "id": new_id, 
-        "nome": nome.upper().strip(), 
+        "nome": nome_clean, 
         "regional_id": uuid.UUID(regional_id),
         "coordenador_id": uuid.UUID(coordenador_id) if coordenador_id else None
     })
+    
+    # Criar automaticamente usuário vinculado com senha inicial padrão e primeiro_acesso = True
+    login = unicodedata.normalize('NFKD', nome_clean).encode('ASCII', 'ignore').decode('utf-8').lower().replace(' ', '').strip()
+    existing = db.query(models.Usuario).filter(models.Usuario.email == login).first()
+    if existing:
+        login = f"{login}_{str(new_id)[:4]}"
+        
+    new_user = models.Usuario(
+        nome=f"Assessor {nome_clean}",
+        email=login,
+        senha_hash=auth.hash_password(auth.DEFAULT_INITIAL_PASSWORD),
+        role="vendedor",
+        vendedor_id=new_id,
+        ativo=True,
+        primeiro_acesso=True,
+        senha_alterada_em=datetime.now(timezone.utc)
+    )
+    db.add(new_user)
     db.commit()
     return new_id
 

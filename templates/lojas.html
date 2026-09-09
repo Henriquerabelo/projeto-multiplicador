@@ -3,20 +3,20 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Carteira de Lojas</h1>
-            <p class="text-sm text-gray-500">Gerenciamento, acompanhamento e exportação de carteiras de lojas dos assessores.</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Carteira de Lojas</h1>
+            <p class="text-xs sm:text-sm text-gray-500">Gerenciamento, acompanhamento e exportação de carteiras de lojas dos assessores.</p>
         </div>
         <a href="/lojas/exportar{% if search or selected_vendedor %}?search={{ search or '' }}&vendedor_id={{ selected_vendedor or '' }}{% endif %}" 
            title="Baixar planilha CSV com os dados filtrados"
-           class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm shadow-sm transition-all flex items-center gap-2 self-start sm:self-auto">
+           class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm shadow-sm transition-all flex items-center justify-center gap-2 w-full sm:w-auto">
             <i class="fa-solid fa-file-excel"></i> Exportar Dados (.csv)
         </a>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
         <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div class="md:col-span-2">
                 <label for="search" class="block mb-2 text-sm font-semibold text-gray-600">Buscar Loja:</label>
@@ -44,9 +44,9 @@
 
     <!-- Stores List -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 class="font-bold text-gray-700">Relação de Lojas e Vinculação</h2>
-            <div class="flex items-center gap-3">
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <h2 class="font-bold text-gray-700 text-sm sm:text-base">Relação de Lojas e Vinculação</h2>
+            <div class="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3">
                 <span class="text-xs text-gray-400 font-semibold">{{ lojas|length }} lojas listadas</span>
                 <a href="/lojas/exportar{% if search or selected_vendedor %}?search={{ search or '' }}&vendedor_id={{ selected_vendedor or '' }}{% endif %}" 
                    class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded flex items-center gap-1 transition-all">
@@ -54,7 +54,8 @@
                 </a>
             </div>
         </div>
-        <div class="overflow-x-auto">
+        <!-- Desktop Table View (>= md) -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
                     <tr>
@@ -97,6 +98,54 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Card List View (< md) -->
+        <div class="block md:hidden divide-y divide-gray-100">
+            {% for l in lojas %}
+            <div class="p-4 space-y-2.5 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="font-bold text-gray-800 text-sm block">{{ l.nome_loja }}</span>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="font-mono text-[11px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium">{{ l.chave_loja }}</span>
+                            <span class="text-[11px] text-gray-500 font-medium">Ag/PA: {{ l.ag_pacb }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        {% if l.ultima_data %}
+                            <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-mono block text-right" title="Última importação">{{ l.ultima_data.strftime('%d/%m/%Y') }}</span>
+                        {% else %}
+                            <span class="bg-red-50 text-red-500 px-2 py-0.5 rounded text-[10px] block text-right">Sem data</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                    <span class="flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-red-500 text-[11px]"></i>
+                        {{ l.municipio }} - {{ l.uf }}
+                    </span>
+                    <span class="text-gray-300">•</span>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
+                        {{ l.regional }}
+                    </span>
+                </div>
+
+                <div class="pt-1.5 border-t border-gray-100">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Assessor Responsável:</label>
+                    {% if current_user.role == 'admin' %}
+                    <select onchange="updateCarteira('{{ l.id }}', this.value)" class="bg-gray-50 border border-gray-300 text-gray-900 text-xs rounded-lg focus:ring-red-500 focus:border-red-500 block w-full p-2 font-medium">
+                        {% for v in vendedores %}
+                            <option value="{{ v.id }}" {% if v.id == l.vendedor_id %}selected{% endif %}>{{ v.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <span class="font-bold text-gray-800 text-xs bg-gray-100 px-2.5 py-1 rounded inline-block">{{ l.vendedor or 'Sem Assessor' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>

@@ -128,6 +128,8 @@ class Usuario(Base):
     role = Column(String(50), default='vendedor', nullable=False)
     vendedor_id = Column(UUID(as_uuid=True), ForeignKey('vendedores.id', ondelete='SET NULL'), nullable=True)
     ativo = Column(Boolean, default=True, nullable=False)
+    senha_alterada_em = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    primeiro_acesso = Column(Boolean, default=True, nullable=False)
     criado_em = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     atualizado_em = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

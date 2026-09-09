@@ -3,13 +3,13 @@
 {% block content %}
 <div class="space-y-6">
     <!-- Header -->
-    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h1 class="text-2xl font-bold text-gray-800">Importação de Dados Diários</h1>
-        <p class="text-sm text-gray-500">Faça o upload do arquivo CSV ou XLSX diário exportado do sistema Bradesco Expresso.</p>
+    <div class="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Importação de Dados Diários</h1>
+        <p class="text-xs sm:text-sm text-gray-500">Faça o upload do arquivo CSV ou XLSX diário exportado do sistema Bradesco Expresso.</p>
     </div>
 
     <!-- Status da Última Carga / Indicadores de Atualização -->
-    <div class="bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 rounded-xl p-6 shadow-md text-white border border-gray-700">
+    <div class="bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 rounded-xl p-4 sm:p-6 shadow-md text-white border border-gray-700">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-700/60 pb-4 mb-4">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-500 text-xl">
@@ -148,11 +148,13 @@
 
     <!-- Importations Log -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 class="font-bold text-gray-700">Histórico de Importações Recentes</h2>
-            <span class="text-xs text-gray-400 font-semibold">Últimas 20 cargas realizadas</span>
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+            <h2 class="font-bold text-gray-700 text-sm sm:text-base">Histórico de Importações Recentes</h2>
+            <span class="text-xs text-gray-400 font-semibold">Últimas 20 cargas</span>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- Desktop Table View (>= md) -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-100 border-b border-gray-200">
                     <tr>
@@ -201,6 +203,52 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Card List View (< md) -->
+        <div class="block md:hidden divide-y divide-gray-100">
+            {% for imp in importacoes %}
+            <div class="p-4 space-y-2.5 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <i class="fa-solid fa-file-csv text-gray-400 text-base flex-shrink-0"></i>
+                        <span class="font-mono text-xs font-bold text-gray-800 truncate">{{ imp.arquivo_nome }}</span>
+                    </div>
+                    <div>
+                        {% if imp.status == 'concluido' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 inline-flex items-center"><i class="fa-solid fa-check mr-1"></i> Sucesso</span>
+                        {% elif imp.status == 'concluido_com_erros' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-700 inline-flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Alertas</span>
+                        {% elif imp.status == 'erro' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-100 text-red-700 inline-flex items-center"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Erro</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-yellow-100 text-yellow-700 inline-flex items-center"><i class="fa-solid fa-spinner animate-spin mr-1"></i></span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                    <div>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase block">Data Arquivo:</span>
+                        <span class="font-bold text-blue-700">{{ imp.data_arquivo.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 font-bold uppercase block">Referência / Lojas:</span>
+                        <span class="font-semibold text-gray-800">{{ imp.referencia.strftime('%m/%Y') }} ({{ imp.total_lojas or 0 }})</span>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-400">
+                    <i class="fa-regular fa-clock mr-1"></i> Importado em: {{ imp.importado_em.strftime('%d/%m/%Y às %H:%M:%S') }}
+                </div>
+
+                {% if imp.mensagem_erro %}
+                    <div class="text-[11px] text-red-500 font-mono mt-1 break-words bg-red-50 p-2 rounded border border-red-100">
+                        {{ imp.mensagem_erro }}
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>

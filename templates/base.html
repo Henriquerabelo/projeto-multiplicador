@@ -16,17 +16,24 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col font-sans">
     <!-- Header -->
-    <header class="bg-white shadow-md">
+    <header class="bg-white shadow-md relative z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
-                <div class="flex items-center">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    {% if current_user %}
+                    <!-- Mobile Hamburger Button -->
+                    <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden text-gray-600 hover:text-red-600 p-2 rounded-lg hover:bg-gray-50 focus:outline-none transition-colors" aria-label="Abrir Menu">
+                        <i id="mobile-menu-icon" class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    {% endif %}
+
                     <a href="/" class="flex-shrink-0 flex items-center gap-2 hover:opacity-90 transition-opacity">
                         <i class="fa-solid fa-money-bill-trend-up text-red-600 text-2xl"></i>
-                        <span class="font-bold text-xl text-gray-800 tracking-tight">Bradesco Expresso <span class="text-red-600 font-semibold text-sm">Multiplicador</span></span>
+                        <span class="font-bold text-base sm:text-xl text-gray-800 tracking-tight">Bradesco Expresso <span class="text-red-600 font-semibold text-xs sm:text-sm">Multiplicador</span></span>
                     </a>
                     
                     {% if current_user %}
-                    <nav class="hidden md:flex ml-10 space-x-8">
+                    <nav class="hidden md:flex ml-8 lg:ml-10 space-x-6 lg:space-x-8">
                         {% if current_user.role in ['admin', 'coordenador'] %}
                         <a href="/" class="text-gray-600 hover:text-red-600 px-1 py-2 text-sm font-medium transition-all duration-200 {% if active_page == 'dashboard' %}active-nav{% endif %}">
                             <i class="fa-solid fa-chart-pie mr-1 text-xs"></i> Dashboard
@@ -57,7 +64,7 @@
 
                 {% if current_user %}
                 <!-- User Profile & Logout -->
-                <div class="flex items-center gap-4 text-sm">
+                <div class="flex items-center gap-2 sm:gap-4 text-sm">
                     <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-red-50 border border-red-200 text-red-600 flex items-center justify-center font-bold text-xs">
                             {{ current_user.nome[:2].upper() }}
@@ -75,17 +82,99 @@
                             </div>
                         </div>
                     </div>
-                    <a href="/logout" title="Sair do Sistema" class="text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 p-2 rounded-lg border border-gray-200 transition-all">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                    </a>
+                    <div class="flex items-center gap-1.5">
+                        <a href="/trocar-senha" title="Alterar Minha Senha" class="text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 p-2 rounded-lg border border-gray-200 transition-all">
+                            <i class="fa-solid fa-key"></i>
+                        </a>
+                        <a href="/logout" title="Sair do Sistema" class="text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 p-2 rounded-lg border border-gray-200 transition-all">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </a>
+                    </div>
                 </div>
                 {% endif %}
             </div>
         </div>
+
+        {% if current_user %}
+        <!-- Mobile Dropdown Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-gray-200 bg-white px-4 pt-3 pb-4 space-y-2 shadow-xl">
+            <!-- Mobile User Info Banner -->
+            <div class="flex items-center justify-between pb-3 mb-1 border-b border-gray-100 sm:hidden">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center">
+                        {{ current_user.nome[:2].upper() }}
+                    </div>
+                    <div>
+                        <div class="font-bold text-gray-800 text-xs">{{ current_user.nome }}</div>
+                        <div class="text-[10px] text-gray-400 uppercase font-semibold">{{ current_user.role }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Navigation Links -->
+            <div class="space-y-1">
+                {% if current_user.role in ['admin', 'coordenador'] %}
+                <a href="/" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {% if active_page == 'dashboard' %}bg-red-50 text-red-600 font-bold border-l-4 border-red-600{% else %}text-gray-700 hover:bg-gray-50 hover:text-red-600{% endif %}">
+                    <i class="fa-solid fa-chart-pie w-5 text-center"></i> Dashboard
+                </a>
+                {% endif %}
+
+                {% if current_user.role == 'vendedor' and current_user.vendedor_id %}
+                <a href="/vendedor/{{ current_user.vendedor_id }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {% if active_page == 'dashboard' %}bg-red-50 text-red-600 font-bold border-l-4 border-red-600{% else %}text-gray-700 hover:bg-gray-50 hover:text-red-600{% endif %}">
+                    <i class="fa-solid fa-user-check w-5 text-center"></i> Meu Resultado
+                </a>
+                {% endif %}
+
+                <a href="/lojas" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {% if active_page == 'lojas' %}bg-red-50 text-red-600 font-bold border-l-4 border-red-600{% else %}text-gray-700 hover:bg-gray-50 hover:text-red-600{% endif %}">
+                    <i class="fa-solid fa-store w-5 text-center"></i> Carteira de Lojas
+                </a>
+
+                {% if current_user.role == 'admin' %}
+                <a href="/vendedores" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {% if active_page == 'vendedores' %}bg-red-50 text-red-600 font-bold border-l-4 border-red-600{% else %}text-gray-700 hover:bg-gray-50 hover:text-red-600{% endif %}">
+                    <i class="fa-solid fa-users w-5 text-center"></i> Assessores
+                </a>
+                <a href="/importar" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {% if active_page == 'importar' %}bg-red-50 text-red-600 font-bold border-l-4 border-red-600{% else %}text-gray-700 hover:bg-gray-50 hover:text-red-600{% endif %}">
+                    <i class="fa-solid fa-file-arrow-up w-5 text-center"></i> Importar Dados
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Mobile Quick Actions Footer -->
+            <div class="pt-3 border-t border-gray-100 flex items-center justify-around text-xs">
+                <a href="/trocar-senha" class="flex items-center gap-1.5 text-gray-600 hover:text-red-600 py-1.5 px-3 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    <i class="fa-solid fa-key text-red-500"></i> Trocar Senha
+                </a>
+                <a href="/logout" class="flex items-center gap-1.5 text-gray-600 hover:text-red-600 py-1.5 px-3 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                    <i class="fa-solid fa-right-from-bracket text-red-500"></i> Sair do Sistema
+                </a>
+            </div>
+        </div>
+        {% endif %}
     </header>
 
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const icon = document.getElementById('mobile-menu-icon');
+            if (!menu) return;
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                if (icon) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-xmark');
+                }
+            } else {
+                menu.classList.add('hidden');
+                if (icon) {
+                    icon.classList.remove('fa-xmark');
+                    icon.classList.add('fa-bars');
+                }
+            }
+        }
+    </script>
+
     <!-- Content -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8">
         {% block content %}{% endblock %}
     </main>
 

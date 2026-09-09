@@ -117,9 +117,13 @@ async def login_submit(
         "nome": user.nome
     })
     
-    target_url = "/"
-    if user.role == "vendedor" and user.vendedor_id:
-        target_url = f"/vendedor/{user.vendedor_id}"
+    precisa_trocar, _ = auth.user_requires_password_change(user)
+    if precisa_trocar:
+        target_url = "/trocar-senha"
+    else:
+        target_url = "/"
+        if user.role == "vendedor" and user.vendedor_id:
+            target_url = f"/vendedor/{user.vendedor_id}"
         
     response = RedirectResponse(url=target_url, status_code=303)
     response.set_cookie(
@@ -136,6 +140,95 @@ async def logout():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie(key="access_token")
     return response
+
+@app.get("/trocar-senha", response_class=HTMLResponse)
+async def trocar_senha_page(
+    request: Request,
+    db: Session = Depends(database.get_db),
+    error: str = None,
+    success_msg: str = None
+):
+    user = auth.get_current_user_optional(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+        
+    precisa_trocar, motivo = auth.user_requires_password_change(user)
+    return templates.TemplateResponse(request, "trocar_senha.html", {
+        "request": request,
+        "current_user": user,
+        "motivo": motivo,
+        "is_forced": precisa_trocar,
+        "error": error,
+        "success_msg": success_msg
+    })
+
+@app.post("/trocar-senha")
+async def trocar_senha_submit(
+    request: Request,
+    senha_atual: str = Form(...),
+    nova_senha: str = Form(...),
+    confirmar_senha: str = Form(...),
+    db: Session = Depends(database.get_db)
+):
+    user = auth.get_current_user_optional(request, db)
+    if not user:
+        return RedirectResponse("/login", status_code=303)
+        
+    precisa_trocar, motivo = auth.user_requires_password_change(user)
+    
+    # 1. Verifica senha atual
+    if not auth.verify_password(senha_atual, user.senha_hash):
+        return templates.TemplateResponse(request, "trocar_senha.html", {
+            "request": request,
+            "current_user": user,
+            "motivo": motivo,
+            "is_forced": precisa_trocar,
+            "error": "A senha atual informada está incorreta."
+        }, status_code=400)
+        
+    # 2. Verifica igualdade com a confirmação
+    if nova_senha != confirmar_senha:
+        return templates.TemplateResponse(request, "trocar_senha.html", {
+            "request": request,
+            "current_user": user,
+            "motivo": motivo,
+            "is_forced": precisa_trocar,
+            "error": "A confirmação da nova senha não coincide com a nova senha."
+        }, status_code=400)
+        
+    # 3. Impede reutilização da mesma senha
+    if auth.verify_password(nova_senha, user.senha_hash):
+        return templates.TemplateResponse(request, "trocar_senha.html", {
+            "request": request,
+            "current_user": user,
+            "motivo": motivo,
+            "is_forced": precisa_trocar,
+            "error": "A nova senha não pode ser idêntica à senha atual."
+        }, status_code=400)
+        
+    # 4. Valida política de senha forte
+    valida, erro_politica = auth.validate_password_strength(nova_senha)
+    if not valida:
+        return templates.TemplateResponse(request, "trocar_senha.html", {
+            "request": request,
+            "current_user": user,
+            "motivo": motivo,
+            "is_forced": precisa_trocar,
+            "error": erro_politica
+        }, status_code=400)
+        
+    # 5. Atualiza dados no banco
+    from datetime import datetime, timezone
+    user.senha_hash = auth.hash_password(nova_senha)
+    user.senha_alterada_em = datetime.now(timezone.utc)
+    user.primeiro_acesso = False
+    db.commit()
+    
+    target_url = "/"
+    if user.role == "vendedor" and user.vendedor_id:
+        target_url = f"/vendedor/{user.vendedor_id}"
+        
+    return RedirectResponse(url=target_url, status_code=303)
 
 # ─────────────────────────────────────────────
 # APPLICATION ROUTES
@@ -234,8 +327,9 @@ async def dashboard(
             COALESCE(SUM(p.qtd_mtoken), 0) as mtoken,
             COALESCE(SUM(p.qtd_cartao_emitido), 0) as cartao_emitido
         FROM producao_lojas p
+        JOIN lojas l ON l.id = p.loja_id
         JOIN vendedores v ON v.id = p.vendedor_id
-        WHERE p.referencia = :ref AND v.is_coringa = false
+        WHERE p.referencia = :ref AND v.is_coringa = false AND l.status_treinamento = 'TREINADO'
     """
     vol_params = {"ref": selected_month}
     if allowed_vendedor_ids is not None:
@@ -494,7 +588,8 @@ async def vendedor_detail(
             COALESCE(SUM(p.qtd_mtoken), 0) as mtoken,
             COALESCE(SUM(p.qtd_cartao_emitido), 0) as cartao_emitido
         FROM producao_lojas p
-        WHERE p.referencia = :ref AND p.vendedor_id = :vendedor_id
+        JOIN lojas l ON l.id = p.loja_id
+        WHERE p.referencia = :ref AND p.vendedor_id = :vendedor_id AND l.status_treinamento = 'TREINADO'
     """
     volumes_row = db.execute(text(sql_volumes), {"ref": selected_month, "vendedor_id": uuid.UUID(vendedor_id)}).fetchone()
     volumes = dict(volumes_row._mapping) if volumes_row else {}
