@@ -1,4 +1,4 @@
-﻿name: Build and Publish Docker Image
+name: Build, Publish and Deploy
 
 on:
   push:
@@ -38,3 +38,44 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set lower case owner name
+        run: |
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY@L}" >> $GITHUB_ENV
+
+      - name: Deploy to Hostinger VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            echo "1. Baixando a nova imagem Docker do repositório..."
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            echo "2. Parando container anterior..."
+            docker stop multiplicador_app 2>/dev/null || true
+            docker rm multiplicador_app 2>/dev/null || true
+
+            echo "3. Iniciando container atualizado integrado ao Traefik..."
+            docker run -d --name multiplicador_app --restart always \
+              --network postgres_default \
+              -e DATABASE_URL='${{ secrets.DATABASE_URL }}' \
+              -e SECRET_KEY='${{ secrets.SECRET_KEY }}' \
+              --label 'traefik.enable=true' \
+              --label 'traefik.http.routers.multiplicador.entrypoints=websecure' \
+              --label 'traefik.http.routers.multiplicador.rule=Host(`www.eoxsolucoesfinanceiras.com.br`) || Host(`eoxsolucoesfinanceiras.com.br`)' \
+              --label 'traefik.http.routers.multiplicador.tls=true' \
+              --label 'traefik.http.routers.multiplicador.tls.certresolver=letsencrypt' \
+              --label 'traefik.http.services.multiplicador.loadbalancer.server.port=8000' \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+            echo "4. Aplicando constraint atualizada no banco de dados..."
+            docker exec -i postgres psql -U appuser -d appdb -c "ALTER TABLE importacoes DROP CONSTRAINT IF EXISTS importacoes_status_check; ALTER TABLE importacoes ADD CONSTRAINT importacoes_status_check CHECK (status IN ('processando', 'concluido', 'erro', 'concluido_com_erros'));" || true
+
+            echo "Deploy em produção concluído com sucesso!"
