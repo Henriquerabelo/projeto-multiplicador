@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 import pandas as pd
 import shutil
 import os
@@ -43,10 +43,21 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 # Helper functions for processing uploads
 def extrair_data_arquivo(nome_arquivo: str) -> date:
-    match = re.search(r'(\d{4}-\d{2}-\d{2})', nome_arquivo)
-    if not match:
-        raise ValueError("Nome de arquivo não contém data no padrão aaaa-mm-dd.")
-    return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+    # 1. Padrão ISO: aaaa-mm-dd ou aaaa_mm_dd (ex: 2026-08-31)
+    match_iso = re.search(r'(\d{4})[-_](\d{2})[-_](\d{2})', nome_arquivo)
+    if match_iso:
+        y, m, d = int(match_iso.group(1)), int(match_iso.group(2)), int(match_iso.group(3))
+        if 2000 <= y <= 2100 and 1 <= m <= 12 and 1 <= d <= 31:
+            return date(y, m, d)
+            
+    # 2. Padrão BR: dd-mm-aaaa ou dd_mm_aaaa (ex: 31-08-2026)
+    match_br = re.search(r'(\d{2})[-_](\d{2})[-_](\d{4})', nome_arquivo)
+    if match_br:
+        d, m, y = int(match_br.group(1)), int(match_br.group(2)), int(match_br.group(3))
+        if 2000 <= y <= 2100 and 1 <= m <= 12 and 1 <= d <= 31:
+            return date(y, m, d)
+
+    raise ValueError("Nome de arquivo deve conter a data de apuração no formato aaaa-mm-dd ou dd-mm-aaaa (ex: 2026-08-31.csv ou 31-08-2026.csv).")
 
 def normalizar_elegivel(bloqueado: str, referencia: str) -> str:
     if str(bloqueado).strip().lower() == 'bloqueado':
@@ -724,26 +735,78 @@ async def create_vendedor(
     crud.create_vendedor(db, nome, regional_id, coordenador_id)
     return RedirectResponse("/vendedores", status_code=303)
 
+@app.get("/importar/verificar-data")
+async def verificar_data_importacao(
+    filename: str,
+    user: models.Usuario = Depends(auth.require_admin),
+    db: Session = Depends(database.get_db)
+):
+    try:
+        dt_arquivo = extrair_data_arquivo(filename)
+    except Exception as e:
+        return {
+            "valido": False,
+            "erro": str(e)
+        }
+
+    ref_mes = date(dt_arquivo.year, dt_arquivo.month, 1)
+    existing = db.query(models.Importacao).filter(
+        models.Importacao.referencia == ref_mes,
+        models.Importacao.data_arquivo == dt_arquivo
+    ).order_by(models.Importacao.importado_em.desc()).first()
+
+    if existing:
+        return {
+            "valido": True,
+            "ja_importado": True,
+            "data_arquivo": dt_arquivo.strftime('%d/%m/%Y'),
+            "referencia": ref_mes.strftime('%m/%Y'),
+            "arquivo_anterior": existing.arquivo_nome,
+            "importado_em": existing.importado_em.strftime('%d/%m/%Y às %H:%M:%S') if existing.importado_em else "-",
+            "total_lojas": existing.total_lojas or 0,
+            "status": existing.status
+        }
+    else:
+        return {
+            "valido": True,
+            "ja_importado": False,
+            "data_arquivo": dt_arquivo.strftime('%d/%m/%Y'),
+            "referencia": ref_mes.strftime('%m/%Y')
+        }
+
 @app.get("/importar", response_class=HTMLResponse)
 async def importar_page(
     request: Request, 
     user: models.Usuario = Depends(auth.require_admin),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
+    sucesso: str = None,
+    tipo: str = None,
+    data: str = None
 ):
     importacoes = crud.get_importacoes(db)
     ultima_importacao = crud.get_ultima_importacao(db)
+    
+    sucesso_msg = None
+    if sucesso == 'ok':
+        if tipo == 'reimportado':
+            sucesso_msg = f"Arquivo da data {data or ''} reimportado com sucesso! Todos os dados de produção foram atualizados."
+        else:
+            sucesso_msg = f"Arquivo da data {data or ''} importado com sucesso!"
+
     return templates.TemplateResponse(request, "importacao.html", {
         "request": request,
         "active_page": "importar",
         "current_user": user,
         "importacoes": importacoes,
-        "ultima_importacao": ultima_importacao
+        "ultima_importacao": ultima_importacao,
+        "sucesso_msg": sucesso_msg
     })
 
 @app.post("/importar")
 async def processar_importacao(
     request: Request,
     file: UploadFile = File(...),
+    confirmar_reimportacao: bool = Form(False),
     user: models.Usuario = Depends(auth.require_admin),
     db: Session = Depends(database.get_db)
 ):
@@ -761,6 +824,28 @@ async def processar_importacao(
         })
 
     ref_mes = date(dt_arquivo.year, dt_arquivo.month, 1)
+
+    # Verificar se a data já existe
+    existing_import = db.query(models.Importacao).filter(
+        models.Importacao.referencia == ref_mes,
+        models.Importacao.data_arquivo == dt_arquivo
+    ).first()
+
+    if existing_import and not confirmar_reimportacao:
+        return templates.TemplateResponse(request, "importacao.html", {
+            "request": request,
+            "active_page": "importar",
+            "current_user": user,
+            "importacoes": crud.get_importacoes(db),
+            "ultima_importacao": crud.get_ultima_importacao(db),
+            "alerta_reimportacao": {
+                "data_arquivo": dt_arquivo.strftime('%d/%m/%Y'),
+                "arquivo_anterior": existing_import.arquivo_nome,
+                "importado_em": existing_import.importado_em.strftime('%d/%m/%Y às %H:%M:%S') if existing_import.importado_em else "-",
+                "total_lojas": existing_import.total_lojas or 0
+            },
+            "error_msg": f"A data {dt_arquivo.strftime('%d/%m/%Y')} já foi importada anteriormente ({existing_import.arquivo_nome}). Confirme a reimportação para sobrescrever."
+        })
 
     # Save temp file
     temp_dir = "temp_uploads"
@@ -797,15 +882,28 @@ async def processar_importacao(
             "error_msg": f"Erro ao ler arquivo: {str(e)}"
         })
 
-    # Create import record
-    new_import = models.Importacao(
-        referencia=ref_mes,
-        data_arquivo=dt_arquivo,
-        arquivo_nome=filename,
-        total_lojas=len(df_diario),
-        status='processando'
-    )
-    db.add(new_import)
+    # Create or update import record
+    is_reimport = False
+    if existing_import:
+        is_reimport = True
+        new_import = existing_import
+        new_import.arquivo_nome = filename
+        new_import.total_lojas = len(df_diario)
+        new_import.status = 'processando'
+        new_import.mensagem_erro = None
+        new_import.importado_em = datetime.now(timezone.utc)
+        new_import.usuario_id = user.id
+    else:
+        new_import = models.Importacao(
+            referencia=ref_mes,
+            data_arquivo=dt_arquivo,
+            arquivo_nome=filename,
+            total_lojas=len(df_diario),
+            status='processando',
+            usuario_id=user.id
+        )
+        db.add(new_import)
+
     db.commit()
 
     # Column mapping normalize
@@ -968,6 +1066,7 @@ async def processar_importacao(
             erros_loja.append(f"Loja {ch}: {str(err)}")
 
     # Finalize status
+    new_import.importado_em = datetime.now(timezone.utc)
     if erros_loja:
         new_import.status = 'concluido_com_erros'
         new_import.mensagem_erro = " | ".join(erros_loja[:5])
@@ -979,4 +1078,6 @@ async def processar_importacao(
     if os.path.exists(temp_file_path):
         os.remove(temp_file_path)
 
-    return RedirectResponse("/importar", status_code=303)
+    tipo_param = "reimportado" if is_reimport else "novo"
+    dt_param = dt_arquivo.strftime('%d/%m/%Y')
+    return RedirectResponse(f"/importar?sucesso=ok&tipo={tipo_param}&data={dt_param}", status_code=303)

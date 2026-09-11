@@ -195,7 +195,7 @@ def get_regionais(db: Session):
     return [dict(row._mapping) for row in result]
 
 def get_importacoes(db: Session):
-    sql = text("SELECT id, referencia, data_arquivo, arquivo_nome, total_lojas, status, mensagem_erro, importado_em FROM importacoes ORDER BY data_arquivo DESC, importado_em DESC LIMIT 20")
+    sql = text("SELECT id, referencia, data_arquivo, arquivo_nome, total_lojas, status, mensagem_erro, importado_em FROM importacoes ORDER BY importado_em DESC LIMIT 20")
     result = db.execute(sql).fetchall()
     return [dict(row._mapping) for row in result]
 
@@ -204,7 +204,7 @@ def get_ultima_importacao(db: Session):
         SELECT id, referencia, data_arquivo, arquivo_nome, total_lojas, status, mensagem_erro, importado_em 
         FROM importacoes 
         WHERE status IN ('concluido', 'concluido_com_erros')
-        ORDER BY data_arquivo DESC, importado_em DESC 
+        ORDER BY importado_em DESC 
         LIMIT 1
     """)
     result = db.execute(sql).fetchone()
@@ -214,7 +214,7 @@ def get_ultima_importacao(db: Session):
     sql_fallback = text("""
         SELECT id, referencia, data_arquivo, arquivo_nome, total_lojas, status, mensagem_erro, importado_em 
         FROM importacoes 
-        ORDER BY data_arquivo DESC, importado_em DESC 
+        ORDER BY importado_em DESC 
         LIMIT 1
     """)
     res_fallback = db.execute(sql_fallback).fetchone()
