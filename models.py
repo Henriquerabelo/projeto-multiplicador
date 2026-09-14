@@ -134,3 +134,15 @@ class Usuario(Base):
     atualizado_em = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     vendedor = relationship("Vendedor", foreign_keys=[vendedor_id])
+
+class LogAtendimentoIA(Base):
+    __tablename__ = 'logs_atendimento_ia'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    remote_jid = Column(String(100), nullable=True)
+    push_name = Column(String(255), nullable=True)
+    pergunta = Column(Text, nullable=False)
+    resposta = Column(Text, nullable=False)
+    data_hora = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    avaliacao_humana = Column(String(20), nullable=True)
+    observacao_curadoria = Column(Text, nullable=True)
