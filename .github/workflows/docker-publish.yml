@@ -75,7 +75,8 @@ jobs:
               --label 'traefik.http.services.multiplicador.loadbalancer.server.port=8000' \
               ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
-            echo "4. Aplicando constraint atualizada no banco de dados..."
+            echo "4. Aplicando constraints e defaults atualizados no banco de dados..."
             docker exec -i postgres psql -U appuser -d appdb -c "ALTER TABLE importacoes DROP CONSTRAINT IF EXISTS importacoes_status_check; ALTER TABLE importacoes ADD CONSTRAINT importacoes_status_check CHECK (status IN ('processando', 'concluido', 'erro', 'concluido_com_erros'));" || true
+            docker exec -i postgres psql -U appuser -d appdb -c "ALTER TABLE logs_atendimento_ia ALTER COLUMN id SET DEFAULT gen_random_uuid(); ALTER TABLE logs_atendimento_ia ALTER COLUMN data_hora SET DEFAULT NOW();" || true
 
             echo "Deploy em produção concluído com sucesso!"
