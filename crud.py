@@ -129,10 +129,18 @@ def get_stores_list(db: Session, search: str = None, vendedor_id: str = None, al
     result = db.execute(text(sql), params).fetchall()
     return [dict(row._mapping) for row in result]
 
-def update_store_vendedor(db: Session, store_id: str, vendedor_id: str):
-    sql = text("UPDATE lojas SET vendedor_id = :vendedor_id, atualizado_em = NOW() WHERE id = :store_id")
-    v_id = uuid.UUID(vendedor_id) if vendedor_id else None
-    db.execute(sql, {"vendedor_id": v_id, "store_id": uuid.UUID(store_id)})
+def update_store_vendedor(db: Session, store_id: str, vendedor_id: Optional[str] = None):
+    v_id = uuid.UUID(str(vendedor_id)) if (vendedor_id and str(vendedor_id).strip() and str(vendedor_id) not in ("None", "null", "undefined", "")) else None
+    s_id = uuid.UUID(str(store_id))
+    
+    # 1. Atualiza na tabela lojas
+    sql_loja = text("UPDATE lojas SET vendedor_id = :vendedor_id, atualizado_em = NOW() WHERE id = :store_id")
+    db.execute(sql_loja, {"vendedor_id": v_id, "store_id": s_id})
+    
+    # 2. Atualiza na tabela producao_lojas para sincronizar views de pontuação e ranking
+    sql_prod = text("UPDATE producao_lojas SET vendedor_id = :vendedor_id, atualizado_em = NOW() WHERE loja_id = :store_id")
+    db.execute(sql_prod, {"vendedor_id": v_id, "store_id": s_id})
+    
     db.commit()
 
 def get_vendedores(db: Session, allowed_vendedor_ids: Optional[List[uuid.UUID]] = None):

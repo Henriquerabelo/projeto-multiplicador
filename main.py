@@ -704,8 +704,24 @@ async def update_carteira(
     user: models.Usuario = Depends(auth.require_admin),
     db: Session = Depends(database.get_db)
 ):
-    crud.update_store_vendedor(db, store_id, vendedor_id)
-    return {"status": "success"}
+    try:
+        crud.update_store_vendedor(db, store_id, vendedor_id)
+        return {"status": "success", "store_id": store_id, "vendedor_id": vendedor_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar carteira da loja: {str(e)}")
+
+@app.post("/loja/update")
+async def update_loja_legacy(
+    store_id: str = Form(...),
+    vendedor_id: str = Form(None),
+    user: models.Usuario = Depends(auth.require_admin),
+    db: Session = Depends(database.get_db)
+):
+    try:
+        crud.update_store_vendedor(db, store_id, vendedor_id)
+        return {"status": "success", "store_id": store_id, "vendedor_id": vendedor_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Erro ao atualizar carteira da loja: {str(e)}")
 
 @app.get("/vendedores", response_class=HTMLResponse)
 async def vendedores_list(

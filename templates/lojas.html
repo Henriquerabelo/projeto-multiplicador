@@ -167,19 +167,21 @@
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: `store_id=${storeId}&vendedor_id=${vendedorId}`
+            body: `store_id=${encodeURIComponent(storeId)}&vendedor_id=${encodeURIComponent(vendedorId || '')}`
         })
-        .then(response => {
+        .then(async response => {
             if (response.ok) {
                 toastMsg.innerText = 'Associação da loja atualizada com sucesso!';
                 toastIcon.className = 'fa-solid fa-circle-check text-green-500';
                 showToast();
             } else {
-                throw new Error('Falha ao atualizar');
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || 'Falha ao atualizar');
             }
         })
         .catch(error => {
-            toastMsg.innerText = 'Erro ao atualizar associação!';
+            console.error('Erro ao atualizar associação:', error);
+            toastMsg.innerText = error.message || 'Erro ao atualizar associação!';
             toastIcon.className = 'fa-solid fa-circle-xmark text-red-500';
             showToast();
         });
